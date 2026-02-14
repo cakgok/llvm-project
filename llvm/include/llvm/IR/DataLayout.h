@@ -36,6 +36,7 @@
 #include "llvm/Support/TypeSize.h"
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 // This needs to be outside of the namespace, to avoid conflict with llvm-c
@@ -95,6 +96,9 @@ public:
     bool HasExternalState;
     // Symbolic name of the address space.
     std::string AddrSpaceName;
+    /// The null pointer bit representation for this address space.
+    /// If absent, this address space uses the default null pointer value.
+    std::optional<APInt> NullPtrValue;
 
     LLVM_ABI bool operator==(const PointerSpec &Other) const;
   };
@@ -142,6 +146,11 @@ private:
   /// Pointer type specifications. Sorted and uniqued by address space number.
   SmallVector<PointerSpec, 8> PointerSpecs;
 
+  /// Describes the null pointer bit representation for address spaces that
+  /// do not override it in their pointer specification.
+  enum class NullPtrKind { Zero, AllOnes };
+  NullPtrKind DefaultNullPtrKind = NullPtrKind::Zero;
+
   /// The string representation used to create this DataLayout
   std::string StringRepresentation;
 
@@ -164,7 +173,8 @@ private:
   void setPointerSpec(uint32_t AddrSpace, uint32_t BitWidth, Align ABIAlign,
                       Align PrefAlign, uint32_t IndexBitWidth,
                       bool HasUnstableRepr, bool HasExternalState,
-                      StringRef AddrSpaceName);
+                      StringRef AddrSpaceName,
+                      std::optional<APInt> NullPtrValue);
 
   /// Internal helper to get alignment for integer of given bitwidth.
   LLVM_ABI Align getIntegerAlignment(uint32_t BitWidth, bool abi_or_pref) const;
@@ -181,6 +191,9 @@ private:
   /// Attempts to parse pointer specification ('p').
   Error parsePointerSpec(StringRef Spec,
                          SmallDenseSet<StringRef, 8> &AddrSpaceNames);
+
+  /// Attempts to parse default null pointer specification ('N').
+  Error parseNullPointerDefaultSpec(StringRef Spec);
 
   /// Attempts to parse a single specification.
   Error parseSpecification(StringRef Spec,
@@ -440,6 +453,15 @@ public:
   bool hasExternalState(Type *Ty) const {
     auto *PTy = dyn_cast<PointerType>(Ty->getScalarType());
     return PTy && hasExternalState(PTy->getPointerAddressSpace());
+  }
+
+  /// Returns the null pointer bit pattern for the given address space.
+  LLVM_ABI APInt getNullPtrValue(unsigned AS) const;
+
+  /// Returns true if the null pointer in the given address space has an
+  /// all-zero bit representation.
+  bool isNullPointerAllZeroes(unsigned AS) const {
+    return getNullPtrValue(AS).isZero();
   }
 
   /// Returns whether passes must avoid introducing `inttoptr` instructions
