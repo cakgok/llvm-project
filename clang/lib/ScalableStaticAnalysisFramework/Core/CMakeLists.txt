@@ -28,6 +28,7 @@ add_clang_library(clangScalableStaticAnalysisFrameworkCore
   WholeProgramAnalysis/AnalysisDriver.cpp
   WholeProgramAnalysis/AnalysisName.cpp
   WholeProgramAnalysis/AnalysisRegistry.cpp
+  SourcePassAnalysis/SourcePassAnalysisRegistry.cpp
 
   LINK_LIBS
   clangAST

@@ -13,6 +13,7 @@ add_clang_library(clangScalableStaticAnalysisFrameworkAnalyses
   UnsafeBufferUsage/UnsafeBufferUsage.cpp
   UnsafeBufferUsage/UnsafeBufferUsageAnalysis.cpp
   UnsafeBufferUsage/UnsafeBufferUsageExtractor.cpp
+  UnsafeBufferUsage/UnsafeBufferUsagePrinter.cpp
 
   LINK_LIBS
   clangAST
